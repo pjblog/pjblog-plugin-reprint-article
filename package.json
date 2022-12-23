@@ -63,7 +63,7 @@
     "port": 3306,
     "database": "test_nlog",
     "username": "root",
-    "password": "fdnsyj211314",
+    "password": "",
     "entityPrefix": "print_"
   }
 }
