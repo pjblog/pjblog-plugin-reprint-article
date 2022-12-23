@@ -32,6 +32,7 @@ export function getReprints(widget: RePrints) {
         const count = await repo.count({
           where: {
             local_article_code: article.article_code,
+            status: 1
           }
         })
         const configs = getNode(Configs);
