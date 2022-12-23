@@ -1,0 +1,17 @@
+[
+  {
+    "type": "number",
+    "name": "hotPrintsSize",
+    "label": "热门转载文章篇数",
+    "defaultValue": 10,
+    "number": {
+      "max": 100,
+      "min": 1,
+      "step": 1,
+      "unit": "条",
+      "style": {
+        "width": 200
+      }
+    }
+  }
+]
