@@ -1,7 +1,7 @@
 {
   "name": "pjblog-plugin-reprint-article",
   "description": "PJBlog插件之转载分享插件。提供系统hook级别的转载数据以及转载流程，方便用户交互。",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "repository": "https://github.com/pjblog/pjblog-template-plugin",
   "homepage": "https://npmjs.com/pjblog-template-plugin",
   "cache": "file",
@@ -53,7 +53,7 @@
   },
   "pjblog": {
     "type": "plugin",
-    "icon": "https://app-cdn.zblogcn.com/files/phpplugin/iddahe_com_schedule/logo.png-logo",
+    "icon": "https://cdn-icons-png.flaticon.com/128/3437/3437338.png",
     "extends": {},
     "advance": "dist/widget/advance.js"
   },
