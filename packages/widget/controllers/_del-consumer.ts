@@ -1,51 +1,46 @@
 import { Controller } from '../utils';
-import { Component, Water, Middleware, Param } from '@pjblog/http';
+import { Component, Water, Middleware, Request } from '@pjblog/http';
 import { BlogRePrintConsumerEntity } from '../entities/index';
 import { AutoGetUserInfo, CheckUserLogined, CheckUserIsAdmin, numberic } from '@pjblog/core';
 import { HttpNotAcceptableException } from '@typeservice/exception';
-import type Prints from '../index';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
-type IResponse = number;
 
 @Controller('DELETE', '/-/consumer/:id(\\d+)')
 @Middleware(AutoGetUserInfo)
 @Middleware(CheckUserLogined)
 @Middleware(CheckUserIsAdmin)
-export class DelConsumerController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
+export class DelConsumerController extends Component<number> {
+  public readonly manager: EntityManager;
+  constructor(req: Request) {
+    super(req, Date.now());
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse {
-    return Date.now();
+  @Water(1)
+  public async check() {
+    const id = numberic(0)(this.req.params.id);
+    if (!id) throw new HttpNotAcceptableException('找不到转载数据');
+    const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
+    const data = await repo.findOne({ where: { id } });
+    if (!data) throw new HttpNotAcceptableException('找不到转载数据');
+    return data;
   }
 
-  @Water()
-  public check(@Param('id', numberic(0)) id: number) {
-    return async () => {
-      if (!id) throw new HttpNotAcceptableException('找不到转载数据');
-      const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-      const data = await repo.findOne({ where: { id } });
-      if (!data) throw new HttpNotAcceptableException('找不到转载数据');
-      return data;
-    }
-  }
-
-  @Water({ stage: 1 })
+  @Water(2)
   public delcheck() {
-    return (context: IResponse, data: BlogRePrintConsumerEntity) => {
-      if (![0, 1].includes(data.status)) {
-        throw new HttpNotAcceptableException('非法操作');
-      }
-      return data;
+    const data = this.getCache<DelConsumerController, 'check'>('check');
+    if (![0, 1].includes(data.status)) {
+      throw new HttpNotAcceptableException('非法操作');
     }
   }
 
-  @Water({ stage: 2 })
+  @Water(3)
   public del() {
-    return async (context: IResponse, data: BlogRePrintConsumerEntity) => {
-      const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-      await repo.delete(data.id);
-    }
+    const data = this.getCache<DelConsumerController, 'check'>('check');
+    const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
+    return repo.delete(data.id);
   }
 }

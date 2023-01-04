@@ -1,12 +1,13 @@
 import { Controller, decode } from '../utils';
-import { Component, Water, Body, Ctx } from '@pjblog/http';
+import { Component, Water, Request } from '@pjblog/http';
 import { BlogRePrintConsumerEntity } from '../entities/index';
-import { PostControlArticle } from '@pjblog/core';
+import { _PostArticleController, TArticlePostProps } from '@pjblog/core';
 import { HttpNotAcceptableException } from '@typeservice/exception';
-import type Prints from '../index';
-import type { Context } from 'koa';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
-interface IResponse {
+export interface IAgreeConsumerControllerResponse {
   invaild: boolean
 };
 
@@ -21,93 +22,73 @@ interface IBody {
 
 // code 转载码
 @Controller('POST', '/consumer/agree')
-export class AgreeConsumerController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
+export class AgreeConsumerController extends Component<IAgreeConsumerControllerResponse, IBody> {
+  public readonly manager: EntityManager;
+  constructor(req: Request<IBody>) {
+    super(req, { invaild: false, });
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse {
-    return {
-      invaild: false,
-    }
+  @Water(1)
+  public decode() {
+    const data = this.req.body;
+    return decode(this.manager, data.token);
   }
 
-  @Water()
-  public decode(@Body() data: IBody) {
-    return () => decode(this.manager, data.token)
-  }
-
-  @Water({ stage: 1 })
-  public check() {
+  @Water(2)
+  public async check() {
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-    return async (context: IResponse, id: string) => {
-      if (!id) throw new HttpNotAcceptableException('非法token');
-      const consumer = await repo.findOne({
-        where: {
-          code: id
-        }
-      })
-      if (!consumer) {
-        context.invaild = true;
+    const id = this.getCache<AgreeConsumerController, 'decode'>('decode');
+    if (!id) throw new HttpNotAcceptableException('非法token');
+    const consumer = await repo.findOne({
+      where: {
+        code: id
       }
-      return consumer;
+    })
+    if (!consumer) {
+      this.res.invaild = true;
     }
+    return consumer;
   }
 
-  @Water({ stage: 2 })
+  @Water(3)
   public checkStatus() {
-    return (context: IResponse, consumer: BlogRePrintConsumerEntity) => {
-      if (!context.invaild && consumer.status !== 1) {
-        throw new HttpNotAcceptableException('非法操作')
-      }
-      return consumer;
+    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
+    if (!this.res.invaild && consumer.status !== 1) {
+      throw new HttpNotAcceptableException('非法操作');
     }
   }
 
-  @Water({ stage: 3 })
-  public saveArticle(@Body() data: IBody, @Ctx() ctx: Context) {
-    return async (context: IResponse, consumer: BlogRePrintConsumerEntity) => {
-      if (!context.invaild) {
-        // 0 表示添加文章
-        ctx.params = {
-          id: 0
-        }
-        // 将之前导入的用户ID作为当前用户ID
-        ctx.state.profile = {
-          id: consumer.uid,
-        }
-        // 模拟数据
-        // @ts-ignore
-        ctx.request.body = {
-          title: data.post.title,
-          content: data.post.content,
-          category: 0,
-          tags: [],
-          summary: data.post.summary,
-          from: consumer.target_domain + '/article/' + consumer.target_article_code,
-        }
-        // 调用插入过程
-        const { id } = await this.invoke(PostControlArticle, ctx);
-        return {
-          id,
-          consumer,
-        }
-      }
-    }
+  @Water(4)
+  public async saveArticle() {
+    const data = this.req.body;
+    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
+    const req = new Request<TArticlePostProps>();
+    req.setParam('id', '0');
+    req.setState('profile', {
+      id: consumer.uid,
+    });
+    req.setBody({
+      title: data.post.title,
+      content: data.post.content,
+      category: 0,
+      tags: [],
+      summary: data.post.summary,
+      from: consumer.target_domain + '/article/' + consumer.target_article_code,
+    });
+    const { id } = await this.invoke(_PostArticleController, req);
+    return id;
   }
 
-  @Water({ stage: 4 })
+  @Water(5)
   public save() {
-    return async (context: IResponse, options: {
-      consumer: BlogRePrintConsumerEntity,
-      id: number,
-    }) => {
-      if (!context.invaild) {
-        options.consumer.status = 2;
-        options.consumer.local_article_id = options.id;
-        options.consumer.gmt_modified = new Date();
-        return await this.manager.getRepository(BlogRePrintConsumerEntity).save(options.consumer);
-      }
+    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
+    const id = this.getCache<AgreeConsumerController, 'saveArticle'>('saveArticle');
+    if (!this.res.invaild) {
+      consumer.status = 2;
+      consumer.local_article_id = id;
+      consumer.gmt_modified = new Date();
+      return this.manager.getRepository(BlogRePrintConsumerEntity).save(consumer);
     }
   }
 }

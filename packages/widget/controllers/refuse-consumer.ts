@@ -1,10 +1,12 @@
 import { Controller, decode } from '../utils';
-import { Component, Water, Body } from '@pjblog/http';
+import { Component, Water, Request } from '@pjblog/http';
 import { BlogRePrintConsumerEntity } from '../entities/index';
 import { HttpNotAcceptableException } from '@typeservice/exception';
-import type Prints from '../index';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
-interface IResponse {
+export interface IRefuseConsumerControllerResponse {
   invaild: boolean
 };
 
@@ -14,57 +16,50 @@ interface IBody {
 
 // code 转载码
 @Controller('POST', '/consumer/refuse')
-export class RefuseConsumerController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
+export class RefuseConsumerController extends Component<IRefuseConsumerControllerResponse, IBody> {
+  public readonly manager: EntityManager;
+  constructor(req: Request<IBody>) {
+    super(req, { invaild: false });
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse {
-    return {
-      invaild: false,
-    }
+  @Water(1)
+  public decode() {
+    const data = this.req.body;
+    return decode(this.manager, data.token)
   }
 
-  @Water()
-  public decode(@Body() data: IBody) {
-    return () => decode(this.manager, data.token)
-  }
-
-  @Water({ stage: 1 })
-  public check() {
+  @Water(2)
+  public async check() {
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-    return async (context: IResponse, id: string) => {
-      if (!id) throw new HttpNotAcceptableException('非法token');
-      const consumer = await repo.findOne({
-        where: {
-          code: id
-        }
-      })
-      if (!consumer) {
-        context.invaild = true;
+    const id = this.getCache<RefuseConsumerController, 'decode'>('decode');
+    if (!id) throw new HttpNotAcceptableException('非法token');
+    const consumer = await repo.findOne({
+      where: {
+        code: id
       }
-      return consumer;
+    })
+    if (!consumer) {
+      this.res.invaild = true;
     }
+    return consumer;
   }
 
-  @Water({ stage: 2 })
+  @Water(3)
   public checkStatus() {
-    return (context: IResponse, consumer: BlogRePrintConsumerEntity) => {
-      if (consumer.status !== 1) {
-        throw new HttpNotAcceptableException('非法操作')
-      }
-      return consumer;
+    const consumer = this.getCache<RefuseConsumerController, 'check'>('check');
+    if (consumer.status !== 1) {
+      throw new HttpNotAcceptableException('非法操作')
     }
   }
 
-  @Water({ stage: 3 })
+  @Water(4)
   public save() {
-    return async (context: IResponse, consumer: BlogRePrintConsumerEntity) => {
-      if (!context.invaild) {
-        consumer.status = -1;
-        consumer.gmt_modified = new Date();
-        return await this.manager.getRepository(BlogRePrintConsumerEntity).save(consumer);
-      }
+    const consumer = this.getCache<RefuseConsumerController, 'check'>('check');
+    if (!this.res.invaild) {
+      consumer.status = -1;
+      consumer.gmt_modified = new Date();
+      return this.manager.getRepository(BlogRePrintConsumerEntity).save(consumer);
     }
   }
 }

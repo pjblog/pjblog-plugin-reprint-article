@@ -1,8 +1,10 @@
 import { Controller } from '../utils';
-import { Component, Water, Middleware, Query } from '@pjblog/http';
+import { Component, Water, Middleware, Request } from '@pjblog/http';
 import { BlogRePrintProviderEntity } from '../entities/index';
 import { AutoGetUserInfo, CheckUserLogined, CheckUserIsAdmin, numberic } from '@pjblog/core';
-import type Prints from '../index';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
 interface IData {
   id: number,
@@ -13,7 +15,7 @@ interface IData {
   mtime: string | Date,
 }
 
-interface IResponse {
+export interface IProvidersControllerResponse {
   total: number,
   dataSource: IData[],
 }
@@ -22,43 +24,38 @@ interface IResponse {
 @Middleware(AutoGetUserInfo)
 @Middleware(CheckUserLogined)
 @Middleware(CheckUserIsAdmin)
-export class ProvidersController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
-  }
-
-  public response(): IResponse {
-    return {
+export class ProvidersController extends Component<IProvidersControllerResponse> {
+  public readonly manager: EntityManager;
+  constructor(req: Request) {
+    super(req, {
       total: 0,
       dataSource: [],
-    }
+    });
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  @Water()
-  public get(
-    @Query('page', numberic(1)) page: number,
-    @Query('size', numberic(10)) size: number,
-  ) {
-    return async (context: IResponse) => {
-      const repo = this.manager.getRepository(BlogRePrintProviderEntity);
-      const [data, count] = await repo.findAndCount({
-        skip: (page - 1) * size,
-        take: size,
-        order: {
-          'gmt_create': 'DESC'
-        },
-      })
-      context.total = count;
-      context.dataSource = data.map(d => {
-        return {
-          id: d.id,
-          status: d.status,
-          domain: d.domain,
-          code: d.local_article_code,
-          ctime: d.gmt_create,
-          mtime: d.gmt_modified
-        }
-      });
-    }
+  @Water(1)
+  public async get() {
+    const page = numberic(1)(this.req.query.page);
+    const size = numberic(10)(this.req.query.size);
+    const repo = this.manager.getRepository(BlogRePrintProviderEntity);
+    const [data, count] = await repo.findAndCount({
+      skip: (page - 1) * size,
+      take: size,
+      order: {
+        'gmt_create': 'DESC'
+      },
+    })
+    this.res.total = count;
+    this.res.dataSource = data.map(d => {
+      return {
+        id: d.id,
+        status: d.status,
+        domain: d.domain,
+        code: d.local_article_code,
+        ctime: d.gmt_create,
+        mtime: d.gmt_modified
+      }
+    });
   }
 }

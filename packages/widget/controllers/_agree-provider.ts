@@ -1,11 +1,13 @@
 import { Controller, createRequest } from '../utils';
-import { Component, Water, Middleware, Param } from '@pjblog/http';
+import { Component, Water, Middleware, Request } from '@pjblog/http';
 import { BlogRePrintProviderEntity, BlogRePrintArticleEntity } from '../entities';
 import { AutoGetUserInfo, CheckUserLogined, CheckUserIsAdmin, numberic, BlogArticleEntity } from '@pjblog/core';
 import { HttpNotAcceptableException, HttpNotFoundException } from '@typeservice/exception';
-import type Prints from '..';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
-interface IResponse {
+export interface IAgreeProviderControllerResponse {
   invaild: boolean,
 };
 
@@ -13,98 +15,77 @@ interface IResponse {
 @Middleware(AutoGetUserInfo)
 @Middleware(CheckUserLogined)
 @Middleware(CheckUserIsAdmin)
-export class AgreeProviderController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
+export class AgreeProviderController extends Component<IAgreeProviderControllerResponse> {
+  public readonly manager: EntityManager;
+  constructor(req: Request) {
+    super(req, { invaild: false });
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse {
-    return {
-      invaild: false
-    }
+  @Water(1)
+  public async check() {
+    const id = numberic(0)(this.req.params.id);
+    if (!id) throw new HttpNotAcceptableException('找不到任务');
+    const repo = this.manager.getRepository(BlogRePrintProviderEntity);
+    const task = await repo.findOne({ where: { id } });
+    if (!task) throw new HttpNotAcceptableException('找不到任务');
+    return task;
   }
 
-  @Water()
-  public check(@Param('id', numberic(0)) id: number) {
-    return async () => {
-      if (!id) throw new HttpNotAcceptableException('找不到任务');
-      const repo = this.manager.getRepository(BlogRePrintProviderEntity);
-      const task = await repo.findOne({ where: { id } });
-      if (!task) throw new HttpNotAcceptableException('找不到任务');
-      return task;
-    }
-  }
-
-  @Water({ stage: 1 })
+  @Water(2)
   public checkStatus() {
-    return (context: IResponse, task: BlogRePrintProviderEntity) => {
-      if (task.status !== 0) {
-        throw new HttpNotAcceptableException('非法操作');
-      }
-      return task;
+    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    if (task.status !== 0) {
+      throw new HttpNotAcceptableException('非法操作');
     }
   }
 
-  @Water({ stage: 2 })
-  public checkArticleExists() {
-    return async (context: IResponse, task: BlogRePrintProviderEntity) => {
-      const repo = this.manager.getRepository(BlogArticleEntity);
-      const article = await repo.findOne({ 
-        where: {
-          article_code: task.local_article_code,
-        } 
-      })
-      if (!article) throw new HttpNotFoundException('找不到文章');
-      return {
-        article,
-        task,
-      }
-    }
+  @Water(3)
+  public async checkArticleExists() {
+    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    const repo = this.manager.getRepository(BlogArticleEntity);
+    const article = await repo.findOne({ 
+      where: {
+        article_code: task.local_article_code,
+      } 
+    })
+    if (!article) throw new HttpNotFoundException('找不到文章');
+    return article;
   }
 
-  @Water({ stage: 3 })
-  public checkRePrintArticle() {
-    return async (context: IResponse, options: { 
-      article: BlogArticleEntity, 
-      task: BlogRePrintProviderEntity 
-    }) => {
-      const repo = this.manager.getRepository(BlogRePrintArticleEntity);
-      const rearticle = repo.findOne({
+  @Water(4)
+  public async checkRePrintArticle() {
+    const article = this.getCache<AgreeProviderController, 'checkArticleExists'>('checkArticleExists');
+    const repo = this.manager.getRepository(BlogRePrintArticleEntity);
+      const rearticle = await repo.findOne({
         where: {
-          code: options.article.article_code,
+          code: article.article_code,
         }
       })
       if (!rearticle) throw new HttpNotFoundException('文章禁止转载');
-      return options;
-    }
   }
 
-  @Water({ stage: 4 })
-  public post() {
-    return async (context: IResponse, options: { 
-      article: BlogArticleEntity, 
-      task: BlogRePrintProviderEntity, 
-    }) => {
-      const request = createRequest(options.task.domain);
-      const res = await request.post<{ invaild: boolean }>('/consumer/agree', {
-        token: options.task.token,
-        post: {
-          title: options.article.article_title,
-          content: options.article.article_content,
-          summary: options.article.article_summary,
-        }
-      })
-      context.invaild = res.data.invaild;
-      return options.task;
-    }
+  @Water(5)
+  public async post() {
+    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    const article = this.getCache<AgreeProviderController, 'checkArticleExists'>('checkArticleExists');
+    const request = createRequest(task.domain);
+    const res = await request.post<{ invaild: boolean }>('/consumer/agree', {
+      token: task.token,
+      post: {
+        title: article.article_title,
+        content: article.article_content,
+        summary: article.article_summary,
+      }
+    })
+    this.res.invaild = res.data.invaild;
   }
 
-  @Water({ stage: 5 })
+  @Water(6)
   public save() {
-    return async (context: IResponse, task: BlogRePrintProviderEntity) => {
-      task.status = context.invaild ? -2 : 1;
-      task.gmt_modified = new Date();
-      return await this.manager.getRepository(BlogRePrintProviderEntity).save(task);
-    }
+    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    task.status = this.res.invaild ? -2 : 1;
+    task.gmt_modified = new Date();
+    return this.manager.getRepository(BlogRePrintProviderEntity).save(task);
   }
 }

@@ -1,11 +1,13 @@
 import { Controller, createRequest } from '../utils';
-import { Component, Water, Middleware, Param } from '@pjblog/http';
+import { Component, Water, Middleware, Request } from '@pjblog/http';
 import { BlogRePrintProviderEntity } from '../entities';
 import { AutoGetUserInfo, CheckUserLogined, CheckUserIsAdmin, numberic } from '@pjblog/core';
 import { HttpNotAcceptableException } from '@typeservice/exception';
-import type Prints from '..';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
-interface IResponse {
+export interface IRefuseProviderControllerResponse {
   invaild: boolean
 }
 
@@ -13,56 +15,46 @@ interface IResponse {
 @Middleware(AutoGetUserInfo)
 @Middleware(CheckUserLogined)
 @Middleware(CheckUserIsAdmin)
-export class RefuseProviderController extends Component<Prints, IResponse> {
-  get manager() {
-    return this.container.connection.manager;
+export class RefuseProviderController extends Component<IRefuseProviderControllerResponse> {
+  public readonly manager: EntityManager;
+  constructor(req: Request) {
+    super(req, { invaild: false });
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse {
-    return {
-      invaild: false
-    }
+  @Water(1)
+  public async check() {
+    const id = numberic(0)(this.req.params.id);
+    if (!id) throw new HttpNotAcceptableException('找不到任务');
+    const repo = this.manager.getRepository(BlogRePrintProviderEntity);
+    const task = await repo.findOne({ where: { id } });
+    if (!task) throw new HttpNotAcceptableException('找不到任务');
+    return task;
   }
 
-  @Water()
-  public check(@Param('id', numberic(0)) id: number) {
-    return async () => {
-      if (!id) throw new HttpNotAcceptableException('找不到任务');
-      const repo = this.manager.getRepository(BlogRePrintProviderEntity);
-      const task = await repo.findOne({ where: { id } });
-      if (!task) throw new HttpNotAcceptableException('找不到任务');
-      return task;
-    }
-  }
-
-  @Water({ stage: 1 })
+  @Water(2)
   public checkStatus() {
-    return (context: IResponse, task: BlogRePrintProviderEntity) => {
-      if (task.status !== 0) {
-        throw new HttpNotAcceptableException('非法操作');
-      }
-      return task;
+    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    if (task.status !== 0) {
+      throw new HttpNotAcceptableException('非法操作');
     }
   }
 
-  @Water({ stage: 2 })
-  public post() {
-    return async (context: IResponse, task: BlogRePrintProviderEntity) => {
-      const request = createRequest(task.domain);
-      const res = await request.post<{ invaild: boolean }>('/consumer/refuse', {
-        token: task.token,
-      });
-      context.invaild = res.data.invaild;
-      return task;
-    }
+  @Water(3)
+  public async post() {
+    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    const request = createRequest(task.domain);
+    const res = await request.post<IRefuseProviderControllerResponse>('/consumer/refuse', {
+      token: task.token,
+    });
+    this.res.invaild = res.data.invaild;
   }
 
-  @Water({ stage: 4 })
+  @Water(4)
   public save() {
-    return async (context: IResponse, task: BlogRePrintProviderEntity) => {
-      task.status = context.invaild ? -2 : -1;
-      task.gmt_modified = new Date();
-      return await this.manager.getRepository(BlogRePrintProviderEntity).save(task);
-    }
+    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    task.status = this.res.invaild ? -2 : -1;
+    task.gmt_modified = new Date();
+    return this.manager.getRepository(BlogRePrintProviderEntity).save(task);
   }
 }

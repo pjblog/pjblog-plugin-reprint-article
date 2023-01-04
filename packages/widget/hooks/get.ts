@@ -1,28 +1,21 @@
-import { BlogArticleEntity, ArticleDetail, Configs } from '@pjblog/core';
+import { ArticleDetailController, Configs } from '@pjblog/core';
 import { getWaterFall } from '@pjblog/http';
 import { getNode } from '@pjblog/manager';
-import { Context } from 'koa';
 import { BlogRePrintProviderEntity, BlogRePrintArticleEntity } from '../entities';
 import type RePrints from '..';
 import type { EntityManager } from 'typeorm';
 
-interface IArticle {
-  prints: {
-    total: number,
-    token: string,
-    level: number,
-  },
-}
-
 export function getReprints(widget: RePrints) {
-  const water = getWaterFall(ArticleDetail);
+  const water = getWaterFall(ArticleDetailController);
 
   water.add('addPrints', {
     after: 'format',
-    async callback(ctx: Context, context: IArticle, article: BlogArticleEntity) {
+    async callback(controller) {
+      const article = controller.getCache<ArticleDetailController, 'checkExists'>('checkExists');
       const level = await getArticleAllowedLevel(widget.connection.manager, article.article_code);
       if (level === -1) {
-        context.prints = {
+        // @ts-ignore
+        controller.res.prints = {
           total: 0,
           token: null,
           level: -1
@@ -37,7 +30,8 @@ export function getReprints(widget: RePrints) {
         })
         const configs = getNode(Configs);
         const _configs = await configs.getCache('configs').get({}, widget.connection.manager);
-        context.prints = {
+        // @ts-ignore
+        controller.res.prints = {
           total: count,
           level,
           token: Buffer.from(JSON.stringify({ 

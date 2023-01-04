@@ -1,18 +1,17 @@
-import { DelControlArticle, BlogArticleEntity } from '@pjblog/core';
+import { _DelArticleController, BlogArticleEntity } from '@pjblog/core';
 import { getWaterFall } from '@pjblog/http';
-import { Context } from 'koa';
 import { BlogRePrintArticleEntity, BlogRePrintProviderEntity } from '../entities';
 import type RePrints from '..';
 import type { EntityManager } from 'typeorm';
 
 export function delArticles(widget: RePrints) {
-  const water = getWaterFall(DelControlArticle);
+  const water = getWaterFall(_DelArticleController);
   water.add('delRepints', {
     before: 'deleteArticle',
-    async callback(ctx: Context, context: number, article: BlogArticleEntity) {
+    async callback(controller) {
+      const article = controller.getCache<_DelArticleController, 'checkID'>('checkID');
       await removeArticle(widget.connection.manager, article.article_code);
       await removeProviders(widget.connection.manager, article.article_code);
-      return article;
     }
   })
   return () => water.del('delRepints');

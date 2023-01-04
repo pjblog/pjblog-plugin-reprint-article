@@ -35,6 +35,11 @@ import {
   HotController,
 } from './controllers';
 
+export * from './controllers';
+export * from './entities';
+export * from './hooks';
+export * from './utils';
+
 @Provider
 export default class Prints extends Plugin<IConfigs> {
   @Consumer(Logger) private readonly Logger: Logger;
@@ -78,22 +83,22 @@ export default class Prints extends Plugin<IConfigs> {
       BlogRePrintProviderEntity, 
       BlogRePrintArticleEntity,
     );
-    this.http.addController(this, AddArticleController);
-    this.http.addController(this, AddConsumerController);
-    this.http.addController(this, AgreeProviderController);
-    this.http.addController(this, ArticlesController);
-    this.http.addController(this, ConsumersController);
-    this.http.addController(this, DelArticleController);
-    this.http.addController(this, DelConsumerController);
-    this.http.addController(this, LevelArticleController);
-    this.http.addController(this, ProvidersController);
-    this.http.addController(this, SearchArticlesController);
-    this.http.addController(this, AddProviderController);
-    this.http.addController(this, AgreeConsumerController);
-    this.http.addController(this, VaildController);
-    this.http.addController(this, RefuseProviderController);
-    this.http.addController(this, RefuseConsumerController);
-    this.http.addController(this, HotController);
+    this.http.addController(AddArticleController);
+    this.http.addController(AddConsumerController);
+    this.http.addController(AgreeProviderController);
+    this.http.addController(ArticlesController);
+    this.http.addController(ConsumersController);
+    this.http.addController(DelArticleController);
+    this.http.addController(DelConsumerController);
+    this.http.addController(LevelArticleController);
+    this.http.addController(ProvidersController);
+    this.http.addController(SearchArticlesController);
+    this.http.addController(AddProviderController);
+    this.http.addController(AgreeConsumerController);
+    this.http.addController(VaildController);
+    this.http.addController(RefuseProviderController);
+    this.http.addController(RefuseConsumerController);
+    this.http.addController(HotController);
     const unBindDelArticles = delArticles(this);
     const unBindGetReprints = getReprints(this);
     this.logger.info('pjblog-plugin-reprint-article Initialized.');

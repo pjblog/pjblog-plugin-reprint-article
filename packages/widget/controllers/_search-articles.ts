@@ -1,9 +1,10 @@
 import { Controller } from '../utils';
-import { SelectQueryBuilder } from 'typeorm';
-import { Component, Water, Body, Middleware } from '@pjblog/http';
+import { Component, Water, Request, Middleware } from '@pjblog/http';
 import { BlogArticleEntity } from '@pjblog/core';
 import { AutoGetUserInfo, CheckUserLogined, CheckUserIsAdmin } from '@pjblog/core';
-import type Prints from '../index';
+import { getNode } from '@pjblog/manager';
+import { TypeORM } from '@pjblog/typeorm';
+import type { EntityManager } from 'typeorm';
 
 interface IResponse {
   title: string,
@@ -18,35 +19,30 @@ interface IBody {
 @Middleware(AutoGetUserInfo)
 @Middleware(CheckUserLogined)
 @Middleware(CheckUserIsAdmin)
-export class SearchArticlesController extends Component<Prints, IResponse[]> {
-  get manager() {
-    return this.container.connection.manager;
+export class SearchArticlesController extends Component<IResponse[], IBody> {
+  public readonly manager: EntityManager;
+  constructor(req: Request<IBody>) {
+    super(req, []);
+    this.manager = getNode(TypeORM).value.manager;
   }
 
-  public response(): IResponse[] {
-    return [];
+  @Water(1)
+  public createRunner() {
+    const data = this.req.body;
+    const repo = this.manager.getRepository(BlogArticleEntity)
+    const runner = repo.createQueryBuilder('art');
+    runner.select('art.article_title', 'title');
+    runner.addSelect('art.article_code', 'code');
+    runner.where('art.article_title LIKE :keyword', { keyword: '%' + data.keyword + '%'});
+    runner.orderBy({
+      'art.gmt_modified': 'DESC'
+    })
+    return runner;
   }
 
-  @Water()
-  public createRunner(@Body() data: IBody) {
-    return () => {
-      const repo = this.manager.getRepository(BlogArticleEntity)
-      const runner = repo.createQueryBuilder('art');
-      runner.select('art.article_title', 'title');
-      runner.addSelect('art.article_code', 'code');
-      runner.where('art.article_title LIKE :keyword', { keyword: '%' + data.keyword + '%'});
-      runner.orderBy({
-        'art.gmt_modified': 'DESC'
-      })
-      return runner;
-    }
-  }
-
-  @Water({ stage: 1 })
-  public save() {
-    return async (context: IResponse[], runner: SelectQueryBuilder<BlogArticleEntity>) => {
-      const res = await runner.getRawMany<IResponse>();
-      context.push(...res);
-    }
+  @Water(2)
+  public async save() {
+    const runner = this.getCache<SearchArticlesController, 'createRunner'>('createRunner');
+    this.res = await runner.getRawMany<IResponse>();
   }
 }
