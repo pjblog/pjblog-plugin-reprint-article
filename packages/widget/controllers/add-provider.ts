@@ -31,7 +31,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(1)
   public async checkArticleExists() {
-    const code = this.req.params.code;
+    const code = this.req.params.acode;
     const repo = this.manager.getRepository(BlogArticleEntity);
     const total = await repo.count({
       where: {
@@ -43,7 +43,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(2)
   public async checkArticleLevelExists() {
-    const code = this.req.params.code;
+    const code = this.req.params.acode;
     const repo = this.manager.getRepository(BlogRePrintArticleEntity);
     const art = await repo.findOne({
       where: {
@@ -76,7 +76,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(5)
   public async getToken() {
-    const code = this.req.params.code;
+    const code = this.req.params.acode;
     const info = this.getCache<AddProviderController, 'base642json'>('base642json');
     const configs = getNode(Configs);
     const _configs = await configs.caches.get('configs').get({}, this.manager);
@@ -96,7 +96,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(6)
   public create() {
-    const code = this.req.params.code;
+    const code = this.req.params.acode;
     const info = this.getCache<AddProviderController, 'base642json'>('base642json');
     const entity = new BlogRePrintProviderEntity();
     entity.token = info.token;
