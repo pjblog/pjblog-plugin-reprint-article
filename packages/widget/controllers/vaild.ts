@@ -48,7 +48,7 @@ export class VaildController extends Component<IResponse, IBody> {
   public checkable() {
     const data = this.req.body;
     const entity = this.getCache<VaildController, 'check'>('check');
-    if (entity.target_domain !== data.domain) {
+    if (entity.target_domain !== data.domain || entity.target_article_code !== data.code) {
       throw new HttpNotAcceptableException('非法操作');
     }
   }
