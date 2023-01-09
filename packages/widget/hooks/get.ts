@@ -11,7 +11,7 @@ export function getReprints(widget: RePrints) {
   water.add('addPrints', {
     after: 'format',
     async callback(controller) {
-      const article = controller.getCache<ArticleDetailController, 'checkExists'>('checkExists');
+      const article = controller.getCache('checkExists');
       const level = await getArticleAllowedLevel(widget.connection.manager, article.article_code);
       if (level === -1) {
         // @ts-ignore

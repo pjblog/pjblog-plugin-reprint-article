@@ -1,7 +1,7 @@
 {
   "name": "pjblog-plugin-reprint-article",
   "description": "PJBlog插件之转载分享插件。提供系统hook级别的转载数据以及转载流程，方便用户交互。",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "repository": "https://github.com/pjblog/pjblog-template-plugin",
   "homepage": "https://npmjs.com/pjblog-template-plugin",
   "cache": "file",

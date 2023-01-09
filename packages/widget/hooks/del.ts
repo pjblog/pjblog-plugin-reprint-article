@@ -9,7 +9,7 @@ export function delArticles(widget: RePrints) {
   water.add('delRepints', {
     before: 'deleteArticle',
     async callback(controller) {
-      const article = controller.getCache<_DelArticleController, 'checkID'>('checkID');
+      const article = controller.getCache('checkID');
       await removeArticle(widget.connection.manager, article.article_code);
       await removeProviders(widget.connection.manager, article.article_code);
     }

@@ -31,7 +31,7 @@ export class DelConsumerController extends Component<number> {
 
   @Water(2)
   public delcheck() {
-    const data = this.getCache<DelConsumerController, 'check'>('check');
+    const data = this.getCache('check');
     if (![0, 1].includes(data.status)) {
       throw new HttpNotAcceptableException('非法操作');
     }
@@ -39,7 +39,7 @@ export class DelConsumerController extends Component<number> {
 
   @Water(3)
   public del() {
-    const data = this.getCache<DelConsumerController, 'check'>('check');
+    const data = this.getCache('check');
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
     return repo.delete(data.id);
   }

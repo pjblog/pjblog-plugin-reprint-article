@@ -40,7 +40,7 @@ export class AddConsumerController extends Component<number, IBody> {
 
   @Water(2)
   public async check() {
-    const options = this.getCache<AddConsumerController, 'base642json'>('base642json');
+    const options = this.getCache('base642json');
     const total = await this.manager.getRepository(BlogRePrintConsumerEntity).count({
       where: {
         target_domain: options.domain,
@@ -62,8 +62,8 @@ export class AddConsumerController extends Component<number, IBody> {
   @Water(4)
   public make() {
     const profile: BlogUserEntity = this.req.state.profile;
-    const info = this.getCache<AddConsumerController, 'base642json'>('base642json');
-    const decoder = this.getCache<AddConsumerController, 'decode'>('decode');
+    const info = this.getCache('base642json');
+    const decoder = this.getCache('decode');
     const entity = new BlogRePrintConsumerEntity();
     entity.code = decoder.id;
     entity.uid = profile.id;
@@ -79,7 +79,7 @@ export class AddConsumerController extends Component<number, IBody> {
 
   @Water(5)
   public save() {
-    const entity = this.getCache<AddConsumerController, 'make'>('make');
+    const entity = this.getCache('make');
     return this.manager.getRepository(BlogRePrintConsumerEntity).save(entity);
   }
 }

@@ -38,7 +38,7 @@ export class AgreeConsumerController extends Component<IAgreeConsumerControllerR
   @Water(2)
   public async check() {
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-    const id = this.getCache<AgreeConsumerController, 'decode'>('decode');
+    const id = this.getCache('decode');
     if (!id) throw new HttpNotAcceptableException('非法token');
     const consumer = await repo.findOne({
       where: {
@@ -53,7 +53,7 @@ export class AgreeConsumerController extends Component<IAgreeConsumerControllerR
 
   @Water(3)
   public checkStatus() {
-    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
+    const consumer = this.getCache('check');
     if (!this.res.invaild && consumer.status !== 1) {
       throw new HttpNotAcceptableException('非法操作');
     }
@@ -62,7 +62,7 @@ export class AgreeConsumerController extends Component<IAgreeConsumerControllerR
   @Water(4)
   public async saveArticle() {
     const data = this.req.body;
-    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
+    const consumer = this.getCache('check');
     const req = new Request<TArticlePostProps>();
     req.setParam('id', '0');
     req.setState('profile', {
@@ -82,8 +82,8 @@ export class AgreeConsumerController extends Component<IAgreeConsumerControllerR
 
   @Water(5)
   public save() {
-    const consumer = this.getCache<AgreeConsumerController, 'check'>('check');
-    const id = this.getCache<AgreeConsumerController, 'saveArticle'>('saveArticle');
+    const consumer = this.getCache('check');
+    const id = this.getCache('saveArticle');
     if (!this.res.invaild) {
       consumer.status = 2;
       consumer.local_article_id = id;

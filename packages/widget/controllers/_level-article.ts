@@ -40,7 +40,7 @@ export class LevelArticleController extends Component<number, IBody> {
   @Water(2)
   public save() {
     const data = this.req.body;
-    const article = this.getCache<LevelArticleController, 'checkExists'>('checkExists');
+    const article = this.getCache('checkExists');
     article.level = data.level;
     article.gmt_modified = new Date();
     return this.manager.getRepository(BlogRePrintArticleEntity).save(article);

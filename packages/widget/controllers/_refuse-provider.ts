@@ -34,7 +34,7 @@ export class RefuseProviderController extends Component<IRefuseProviderControlle
 
   @Water(2)
   public checkStatus() {
-    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    const task = this.getCache('check');
     if (task.status !== 0) {
       throw new HttpNotAcceptableException('非法操作');
     }
@@ -42,7 +42,7 @@ export class RefuseProviderController extends Component<IRefuseProviderControlle
 
   @Water(3)
   public async post() {
-    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    const task = this.getCache('check');
     const request = createRequest(task.domain);
     const res = await request.post<IRefuseProviderControllerResponse>('/consumer/refuse', {
       token: task.token,
@@ -52,7 +52,7 @@ export class RefuseProviderController extends Component<IRefuseProviderControlle
 
   @Water(4)
   public save() {
-    const task = this.getCache<RefuseProviderController, 'check'>('check');
+    const task = this.getCache('check');
     task.status = this.res.invaild ? -2 : -1;
     task.gmt_modified = new Date();
     return this.manager.getRepository(BlogRePrintProviderEntity).save(task);

@@ -47,7 +47,7 @@ export class ArticlesController extends Component<IArticlesControllerResponse> {
 
   @Water(2)
   public async total() {
-    const runner = this.getCache<ArticlesController, 'createRunner'>('createRunner');
+    const runner = this.getCache('createRunner');
     const _runner = runner.clone();
     this.res.total = await _runner.getCount();
   }
@@ -56,7 +56,7 @@ export class ArticlesController extends Component<IArticlesControllerResponse> {
   public async get() {
     const page = numberic(1)(this.req.query.page);
     const size = numberic(10)(this.req.query.size);
-    const runner = this.getCache<ArticlesController, 'createRunner'>('createRunner');
+    const runner = this.getCache('createRunner');
     runner.orderBy({
       'rp_arts.gmt_create': 'DESC',
     })

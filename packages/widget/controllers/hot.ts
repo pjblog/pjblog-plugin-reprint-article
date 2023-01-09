@@ -44,7 +44,7 @@ export class HotController extends Component<IData[]> {
 
   @Water(2)
   public async getDataSource() {
-    const runner = this.getCache<HotController, 'createRunner'>('createRunner');
+    const runner = this.getCache('createRunner');
     this.res = await runner.getRawMany<IData>();
   }
 }

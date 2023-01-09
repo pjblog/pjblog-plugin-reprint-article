@@ -33,7 +33,7 @@ export class VaildController extends Component<IResponse, IBody> {
 
   @Water(2)
   public async check() {
-    const id = this.getCache<VaildController, 'decode'>('decode');
+    const id = this.getCache('decode');
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
     const entity = await repo.findOne({
       where: { code: id }
@@ -47,7 +47,7 @@ export class VaildController extends Component<IResponse, IBody> {
   @Water(3)
   public checkable() {
     const data = this.req.body;
-    const entity = this.getCache<VaildController, 'check'>('check');
+    const entity = this.getCache('check');
     if (entity.target_domain !== data.domain || entity.target_article_code !== data.code) {
       throw new HttpNotAcceptableException('非法操作');
     }
@@ -56,7 +56,7 @@ export class VaildController extends Component<IResponse, IBody> {
   @Water(4)
   public save() {
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-    const entity = this.getCache<VaildController, 'check'>('check');
+    const entity = this.getCache('check');
     entity.status = 1;
     entity.gmt_modified = new Date();
     return repo.save(entity);

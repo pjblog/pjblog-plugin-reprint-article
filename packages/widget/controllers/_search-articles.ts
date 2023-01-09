@@ -42,7 +42,7 @@ export class SearchArticlesController extends Component<IResponse[], IBody> {
 
   @Water(2)
   public async save() {
-    const runner = this.getCache<SearchArticlesController, 'createRunner'>('createRunner');
+    const runner = this.getCache('createRunner');
     this.res = await runner.getRawMany<IResponse>();
   }
 }

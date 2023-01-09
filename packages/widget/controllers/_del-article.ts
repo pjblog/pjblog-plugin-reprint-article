@@ -36,7 +36,7 @@ export class DelArticleController extends Component<number> {
 
   @Water(2)
   public save() {
-    const article = this.getCache<DelArticleController, 'checkExists'>('checkExists');
+    const article = this.getCache('checkExists');
     return this.manager.getRepository(BlogRePrintArticleEntity).delete(article.id);
   }
 }

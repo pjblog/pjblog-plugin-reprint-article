@@ -32,7 +32,7 @@ export class RefuseConsumerController extends Component<IRefuseConsumerControlle
   @Water(2)
   public async check() {
     const repo = this.manager.getRepository(BlogRePrintConsumerEntity);
-    const id = this.getCache<RefuseConsumerController, 'decode'>('decode');
+    const id = this.getCache('decode');
     if (!id) throw new HttpNotAcceptableException('非法token');
     const consumer = await repo.findOne({
       where: {
@@ -47,7 +47,7 @@ export class RefuseConsumerController extends Component<IRefuseConsumerControlle
 
   @Water(3)
   public checkStatus() {
-    const consumer = this.getCache<RefuseConsumerController, 'check'>('check');
+    const consumer = this.getCache('check');
     if (consumer.status !== 1) {
       throw new HttpNotAcceptableException('非法操作')
     }
@@ -55,7 +55,7 @@ export class RefuseConsumerController extends Component<IRefuseConsumerControlle
 
   @Water(4)
   public save() {
-    const consumer = this.getCache<RefuseConsumerController, 'check'>('check');
+    const consumer = this.getCache('check');
     if (!this.res.invaild) {
       consumer.status = -1;
       consumer.gmt_modified = new Date();

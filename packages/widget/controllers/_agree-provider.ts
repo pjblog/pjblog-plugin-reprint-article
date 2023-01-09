@@ -34,7 +34,7 @@ export class AgreeProviderController extends Component<IAgreeProviderControllerR
 
   @Water(2)
   public checkStatus() {
-    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    const task = this.getCache('check');
     if (task.status !== 0) {
       throw new HttpNotAcceptableException('非法操作');
     }
@@ -42,7 +42,7 @@ export class AgreeProviderController extends Component<IAgreeProviderControllerR
 
   @Water(3)
   public async checkArticleExists() {
-    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    const task = this.getCache('check');
     const repo = this.manager.getRepository(BlogArticleEntity);
     const article = await repo.findOne({ 
       where: {
@@ -55,7 +55,7 @@ export class AgreeProviderController extends Component<IAgreeProviderControllerR
 
   @Water(4)
   public async checkRePrintArticle() {
-    const article = this.getCache<AgreeProviderController, 'checkArticleExists'>('checkArticleExists');
+    const article = this.getCache('checkArticleExists');
     const repo = this.manager.getRepository(BlogRePrintArticleEntity);
       const rearticle = await repo.findOne({
         where: {
@@ -67,8 +67,8 @@ export class AgreeProviderController extends Component<IAgreeProviderControllerR
 
   @Water(5)
   public async post() {
-    const task = this.getCache<AgreeProviderController, 'check'>('check');
-    const article = this.getCache<AgreeProviderController, 'checkArticleExists'>('checkArticleExists');
+    const task = this.getCache('check');
+    const article = this.getCache('checkArticleExists');
     const request = createRequest(task.domain);
     const res = await request.post<{ invaild: boolean }>('/consumer/agree', {
       token: task.token,
@@ -83,7 +83,7 @@ export class AgreeProviderController extends Component<IAgreeProviderControllerR
 
   @Water(6)
   public save() {
-    const task = this.getCache<AgreeProviderController, 'check'>('check');
+    const task = this.getCache('check');
     task.status = this.res.invaild ? -2 : 1;
     task.gmt_modified = new Date();
     return this.manager.getRepository(BlogRePrintProviderEntity).save(task);

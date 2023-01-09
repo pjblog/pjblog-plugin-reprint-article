@@ -63,7 +63,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(4)
   public async checkExists() {
-    const info = this.getCache<AddProviderController, 'base642json'>('base642json');
+    const info = this.getCache('base642json');
     const repo = this.manager.getRepository(BlogRePrintProviderEntity);
     const task = await repo.findOne({
       where: {
@@ -77,7 +77,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
   @Water(5)
   public async getToken() {
     const code = this.req.params.acode;
-    const info = this.getCache<AddProviderController, 'base642json'>('base642json');
+    const info = this.getCache('base642json');
     const configs = getNode(Configs);
     const _configs = await configs.caches.get('configs').get({}, this.manager);
     const request = createRequest(info.domain);
@@ -97,7 +97,7 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
   @Water(6)
   public create() {
     const code = this.req.params.acode;
-    const info = this.getCache<AddProviderController, 'base642json'>('base642json');
+    const info = this.getCache('base642json');
     const entity = new BlogRePrintProviderEntity();
     entity.token = info.token;
     entity.domain = info.domain;
@@ -110,13 +110,13 @@ export class AddProviderController extends Component<IAddProviderControllerRespo
 
   @Water(7)
   public save() {
-    const entity = this.getCache<AddProviderController, 'create'>('create');
+    const entity = this.getCache('create');
     return this.manager.getRepository(BlogRePrintProviderEntity).save(entity);
   }
 
   @Water(8)
   public next() {
-    const entity = this.getCache<AddProviderController, 'save'>('save');
+    const entity = this.getCache('save');
     if (this.res.level === 1) {
       const req = new Request();
       req.setParam('id', entity.id + '');
